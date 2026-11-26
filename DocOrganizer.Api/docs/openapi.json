@@ -1,0 +1,4271 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Documents Organizer API",
+    "description": "Web API «Організатор документів зі строком дії».\nВласники документів, документи, нагадування про завершення строку дії, довідники типів і міток.\n\n**Автентифікація:** OpenID Connect (Auth0), маркер доступу JWT, потік Authorization Code + PKCE.\n**Ролі:** `admin` — керує довідниками й бачить усе; `member` — веде власні документи; `viewer` — лише перегляд.",
+    "contact": {
+      "name": "Назар Городецький, ПЗ-36",
+      "url": "https://lpnu.ua"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "https://localhost:7042/"
+    }
+  ],
+  "paths": {
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Повертає відомості про автентифікованого користувача з маркера доступу.",
+        "description": "Зручно для перевірки, які claims і ролі передав постачальник OIDC.",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Відомості про користувача.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/diagnostics/error": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Навмисно генерує необроблений виняток — для перевірки глобального обробника помилок.",
+        "description": "У Development відповідь 500 містить текст винятку в detail, у Production — лише загальне повідомлення.\r\nДоступно тільки admin.",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Завжди: «Внутрішня помилка сервера».",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/document-types": {
+      "get": {
+        "tags": [
+          "Document types"
+        ],
+        "summary": "Повертає сторінку типів документів.",
+        "description": "SortBy: name (за замовчуванням) | defaultReminderDays | id.",
+        "parameters": [
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Пошук за частиною назви.",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "maxLength": 30,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Сторінку сформовано.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfDocumentTypeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некоректні параметри.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Document types"
+        ],
+        "summary": "Створює тип документа.",
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDocumentTypeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDocumentTypeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Потрібна роль admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Тип створено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentTypeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Тип із такою назвою вже існує.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/document-types/{id}": {
+      "get": {
+        "tags": [
+          "Document types"
+        ],
+        "summary": "Повертає тип документа за ідентифікатором.",
+        "operationId": "GetDocumentType",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор типу.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Тип знайдено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentTypeDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Типу немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Document types"
+        ],
+        "summary": "Повністю замінює тип документа.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор типу.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDocumentTypeDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDocumentTypeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Потрібна роль admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Тип оновлено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Типу немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Назва зайнята іншим типом.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Document types"
+        ],
+        "summary": "Видаляє тип документа (лише якщо він не використовується).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор типу.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Потрібна роль admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Тип видалено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Типу немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Тип мають документи.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/tags": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Повертає сторінку міток.",
+        "description": "SortBy: name (за замовчуванням) | id.",
+        "parameters": [
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Пошук за частиною назви.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "maxLength": 30,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Сторінку сформовано.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfTagDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некоректні параметри.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Створює мітку.",
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTagDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTagDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Потрібна роль admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Мітку створено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Мітка з такою назвою вже існує.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/tags/{id}": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Повертає мітку за ідентифікатором.",
+        "operationId": "GetTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор мітки.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Мітку знайдено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Мітки немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Видаляє мітку (з документів вона знімається автоматично).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор мітки.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Потрібна роль admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Мітку видалено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Мітки немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/documents": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Повертає сторінку документів із фільтрацією та сортуванням.",
+        "description": "Фільтри: ownerId, documentTypeId, status, expiryState (Perpetual | Valid | ExpiringSoon | Expired | Inactive),\r\ntagId, search (частина назви або номера).\r\nSortBy: expiryDate (за замовчуванням) | issueDate | title | number | createdAt | id.\r\nЗвичайний користувач бачить лише документи своїх профілів.",
+        "parameters": [
+          {
+            "name": "OwnerId",
+            "in": "query",
+            "description": "Фільтр за власником.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "DocumentTypeId",
+            "in": "query",
+            "description": "Фільтр за типом документа.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Status",
+            "in": "query",
+            "description": "Фільтр за станом документа (Active, Replaced, Cancelled, Archived).",
+            "schema": {
+              "$ref": "#/components/schemas/DocumentStatus"
+            }
+          },
+          {
+            "name": "ExpiryState",
+            "in": "query",
+            "description": "Фільтр за станом строку дії (Perpetual, Valid, ExpiringSoon, Expired, Inactive).",
+            "schema": {
+              "$ref": "#/components/schemas/ExpiryState"
+            }
+          },
+          {
+            "name": "TagId",
+            "in": "query",
+            "description": "Фільтр за міткою (Id).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Пошук за частиною назви або номера.",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "maxLength": 30,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Сторінку сформовано (Items + метадані пагінації).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfDocumentListItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некоректні параметри запиту.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Створює документ.",
+        "description": "Якщо задано expiryDate і createDefaultReminder = true, автоматично створюється нагадування\r\nза DefaultReminderDays типу документа.",
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або профіль власника чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Документ створено; Location містить його адресу.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації (зокрема expiryDate раніше issueDate).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Документ цього типу з таким номером уже існує.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Профіль власника, тип або мітки не існують.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/documents/expiry-calendar": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Календар завершення строків дії: активні документи, що спливають у заданому періоді.",
+        "description": "За замовчуванням — від сьогодні на 90 днів уперед. SortBy: expiryDate | title.",
+        "parameters": [
+          {
+            "name": "From",
+            "in": "query",
+            "description": "Початок періоду (за замовчуванням — сьогодні).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "To",
+            "in": "query",
+            "description": "Кінець періоду (за замовчуванням — From + 90 днів).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "OwnerId",
+            "in": "query",
+            "description": "Фільтр за власником.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "maxLength": 30,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Календар сформовано.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfDocumentListItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некоректний період.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/documents/export/{format}": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Експортує відфільтрований список документів у файл (csv або json).",
+        "description": "Реалізацію експортера обрано за ключем (keyed services) під час виконання. Максимум 5000 рядків.",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "Формат: csv або json.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "OwnerId",
+            "in": "query",
+            "description": "Фільтр за власником.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "DocumentTypeId",
+            "in": "query",
+            "description": "Фільтр за типом документа.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Status",
+            "in": "query",
+            "description": "Фільтр за станом документа (Active, Replaced, Cancelled, Archived).",
+            "schema": {
+              "$ref": "#/components/schemas/DocumentStatus"
+            }
+          },
+          {
+            "name": "ExpiryState",
+            "in": "query",
+            "description": "Фільтр за станом строку дії (Perpetual, Valid, ExpiringSoon, Expired, Inactive).",
+            "schema": {
+              "$ref": "#/components/schemas/ExpiryState"
+            }
+          },
+          {
+            "name": "TagId",
+            "in": "query",
+            "description": "Фільтр за міткою (Id).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Пошук за частиною назви або номера.",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "maxLength": 30,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Файл експорту.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileContentResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileContentResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Формат не підтримується.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": { },
+              "text/csv": { }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/documents/{id}": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Повертає документ за ідентифікатором.",
+        "operationId": "GetDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор документа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Документ належить іншому користувачу.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Документ знайдено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Документа немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Повністю замінює дані документа (оптимістичне блокування за полем version).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор документа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або документ (чи новий власник) чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Документ оновлено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Документа немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Номер зайнятий або документ уже змінив інший користувач (version застарів).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Профіль власника, тип або мітки не існують.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Видаляє документ разом із його нагадуваннями та мітками.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор документа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або документ чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Документ видалено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Документа немає (повторний DELETE теж повертає 404 — стан сервера не змінюється).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/documents/{id}/renewal": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Продовжує документ: створює новий (з новим номером і строком), а старий позначає Replaced.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор документа, який замінюється.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewDocumentDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewDocumentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або документ чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Створено новий документ; Location — його адреса.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Документа немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Документ не активний (уже замінений/анульований) або новий номер зайнятий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/owners": {
+      "get": {
+        "tags": [
+          "Owners"
+        ],
+        "summary": "Повертає сторінку профілів власників.",
+        "description": "Звичайний користувач бачить лише власні профілі, admin — усі.\r\nSortBy: fullName (за замовчуванням) | email | birthDate | id.",
+        "parameters": [
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "Пошук за частиною ПІБ або email.",
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "maxLength": 30,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Сторінку сформовано.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfOwnerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некоректні параметри запиту.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Owners"
+        ],
+        "summary": "Створює профіль власника для поточного користувача.",
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOwnerDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOwnerDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Роль viewer не має права запису.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Профіль створено; заголовок Location містить його адресу.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Профіль з таким email уже існує.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/owners/{id}": {
+      "get": {
+        "tags": [
+          "Owners"
+        ],
+        "summary": "Повертає профіль власника за ідентифікатором.",
+        "operationId": "GetOwner",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор профілю.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Профіль належить іншому користувачу.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Профіль знайдено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Профілю з таким ідентифікатором немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Owners"
+        ],
+        "summary": "Повністю замінює дані профілю власника.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор профілю.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOwnerDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOwnerDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або профіль чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Дані оновлено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Профілю немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email уже використовує інший профіль.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Owners"
+        ],
+        "summary": "Видаляє профіль власника (лише якщо в нього немає документів).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор профілю.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або профіль чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Профіль видалено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Профілю немає (зокрема, якщо його вже видалено).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "До профілю прив'язані документи.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/documents/{documentId}/reminders": {
+      "get": {
+        "tags": [
+          "Reminders"
+        ],
+        "summary": "Повертає всі нагадування документа (впорядковані за датою).",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "description": "Ідентифікатор документа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Документ належить іншому користувачу.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Список нагадувань.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReminderDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Документа немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Reminders"
+        ],
+        "summary": "Додає нагадування до документа.",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "description": "Ідентифікатор документа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Токен скасування.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReminderDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReminderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або документ чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Нагадування створено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Помилка валідації.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Документа немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Нагадування з таким відступом уже існує.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Документ безстроковий/неактивний або дата нагадування вже минула.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/documents/{documentId}/reminders/{id}": {
+      "get": {
+        "tags": [
+          "Reminders"
+        ],
+        "summary": "Повертає одне нагадування документа.",
+        "operationId": "GetReminder",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "description": "Ідентифікатор документа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор нагадування.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Документ належить іншому користувачу.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Нагадування знайдено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Документа або нагадування немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Reminders"
+        ],
+        "summary": "Видаляє нагадування.",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "description": "Ідентифікатор документа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор нагадування.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Немає права запису або документ чужий.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Нагадування видалено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Документа або нагадування немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/reminders/due": {
+      "get": {
+        "tags": [
+          "Reminders"
+        ],
+        "summary": "Повертає ненадіслані нагадування, дата яких настала (черга розсилки).",
+        "description": "SortBy: remindOn (за замовчуванням) | expiryDate.",
+        "parameters": [
+          {
+            "name": "OnDate",
+            "in": "query",
+            "description": "Дата, на яку шукати ненадіслані нагадування (за замовчуванням — сьогодні).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "maximum": 100000,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "maxLength": 30,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Потрібна роль admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Черга нагадувань.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResultOfDueReminderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некоректні параметри.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/reminders/{id}/sent": {
+      "post": {
+        "tags": [
+          "Reminders"
+        ],
+        "summary": "Позначає нагадування надісланим.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Ідентифікатор нагадування.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Потрібна роль admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Позначено.",
+            "content": {
+              "application/json": { }
+            }
+          },
+          "404": {
+            "description": "Нагадування немає.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Нагадування вже було надіслано.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2": [
+              "openid"
+            ]
+          },
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateDocumentDto": {
+        "required": [
+          "ownerId",
+          "documentTypeId",
+          "number",
+          "title",
+          "issueDate",
+          "expiryDate",
+          "issuedBy",
+          "filePath",
+          "notes",
+          "tagIds"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentTypeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "expiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "issuedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "filePath": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tagIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "createDefaultReminder": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "description": "Дані для створення документа."
+      },
+      "CreateOwnerDto": {
+        "required": [
+          "fullName",
+          "email",
+          "birthDate"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "Дані для створення профілю власника."
+      },
+      "CreateReminderDto": {
+        "required": [
+          "daysBefore"
+        ],
+        "type": "object",
+        "properties": {
+          "daysBefore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/ReminderChannel"
+          }
+        },
+        "description": "Дані для створення нагадування."
+      },
+      "CreateTagDto": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "Дані для створення мітки."
+      },
+      "CurrentUserDto": {
+        "required": [
+          "accountId",
+          "userName",
+          "roles",
+          "claims"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "Ідентифікатор (claim sub)."
+          },
+          "userName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Ім'я користувача."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ролі."
+          },
+          "claims": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Усі claims маркера (для налагодження)."
+          }
+        },
+        "description": "Відомості про автентифікованого користувача, отримані з маркера доступу."
+      },
+      "DocumentDto": {
+        "required": [
+          "id",
+          "ownerId",
+          "ownerFullName",
+          "documentTypeId",
+          "documentTypeName",
+          "number",
+          "title",
+          "issueDate",
+          "expiryDate",
+          "issuedBy",
+          "status",
+          "expiryState",
+          "daysLeft",
+          "filePath",
+          "notes",
+          "tags",
+          "createdAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Ідентифікатор документа.",
+            "format": "int32"
+          },
+          "ownerId": {
+            "type": "integer",
+            "description": "Ідентифікатор власника.",
+            "format": "int32"
+          },
+          "ownerFullName": {
+            "type": "string",
+            "description": "ПІБ власника."
+          },
+          "documentTypeId": {
+            "type": "integer",
+            "description": "Ідентифікатор типу документа.",
+            "format": "int32"
+          },
+          "documentTypeName": {
+            "type": "string",
+            "description": "Назва типу документа."
+          },
+          "number": {
+            "type": "string",
+            "description": "Номер документа."
+          },
+          "title": {
+            "type": "string",
+            "description": "Назва."
+          },
+          "issueDate": {
+            "type": "string",
+            "description": "Дата видачі.",
+            "format": "date"
+          },
+          "expiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Дата завершення дії (null — безстроковий).",
+            "format": "date"
+          },
+          "issuedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Ким видано."
+          },
+          "status": {
+            "description": "Стан документа.",
+            "$ref": "#/components/schemas/DocumentStatus"
+          },
+          "expiryState": {
+            "description": "Обчислений стан строку дії.",
+            "$ref": "#/components/schemas/ExpiryState"
+          },
+          "daysLeft": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "Днів до завершення дії (від'ємне — прострочено).",
+            "format": "int32"
+          },
+          "filePath": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Шлях до файлу скан-копії."
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Примітки."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Назви міток."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Час створення запису (UTC).",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string",
+            "description": "Маркер версії (base64 від rowversion) — передається в PUT для оптимістичного блокування."
+          }
+        },
+        "description": "Документ (повне представлення для читання)."
+      },
+      "DocumentListItemDto": {
+        "required": [
+          "id",
+          "ownerId",
+          "ownerFullName",
+          "documentTypeName",
+          "number",
+          "title",
+          "expiryDate",
+          "status",
+          "expiryState",
+          "daysLeft"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Ідентифікатор.",
+            "format": "int32"
+          },
+          "ownerId": {
+            "type": "integer",
+            "description": "Ідентифікатор власника.",
+            "format": "int32"
+          },
+          "ownerFullName": {
+            "type": "string",
+            "description": "ПІБ власника."
+          },
+          "documentTypeName": {
+            "type": "string",
+            "description": "Назва типу."
+          },
+          "number": {
+            "type": "string",
+            "description": "Номер."
+          },
+          "title": {
+            "type": "string",
+            "description": "Назва."
+          },
+          "expiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Дата завершення дії.",
+            "format": "date"
+          },
+          "status": {
+            "description": "Стан документа.",
+            "$ref": "#/components/schemas/DocumentStatus"
+          },
+          "expiryState": {
+            "description": "Обчислений стан строку дії.",
+            "$ref": "#/components/schemas/ExpiryState"
+          },
+          "daysLeft": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "Днів до завершення дії.",
+            "format": "int32"
+          }
+        },
+        "description": "Документ у списку (скорочене представлення)."
+      },
+      "DocumentStatus": {
+        "enum": [
+          "Active",
+          "Replaced",
+          "Cancelled",
+          "Archived"
+        ],
+        "description": "Стан життєвого циклу документа. У БД зберігається рядком (nvarchar(20))."
+      },
+      "DocumentTypeDto": {
+        "required": [
+          "id",
+          "name",
+          "defaultReminderDays"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Ідентифікатор.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Назва (унікальна)."
+          },
+          "defaultReminderDays": {
+            "type": "integer",
+            "description": "За скільки днів до завершення нагадувати за замовчуванням.",
+            "format": "int32"
+          }
+        },
+        "description": "Тип документа."
+      },
+      "DueReminderDto": {
+        "required": [
+          "reminderId",
+          "documentId",
+          "documentTitle",
+          "ownerFullName",
+          "ownerEmail",
+          "expiryDate",
+          "remindOn",
+          "channel"
+        ],
+        "type": "object",
+        "properties": {
+          "reminderId": {
+            "type": "integer",
+            "description": "Ідентифікатор нагадування.",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "description": "Документ.",
+            "format": "int32"
+          },
+          "documentTitle": {
+            "type": "string",
+            "description": "Назва документа."
+          },
+          "ownerFullName": {
+            "type": "string",
+            "description": "ПІБ власника."
+          },
+          "ownerEmail": {
+            "type": "string",
+            "description": "Email власника."
+          },
+          "expiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Дата завершення дії.",
+            "format": "date"
+          },
+          "remindOn": {
+            "type": "string",
+            "description": "Дата нагадування.",
+            "format": "date"
+          },
+          "channel": {
+            "description": "Канал.",
+            "$ref": "#/components/schemas/ReminderChannel"
+          }
+        },
+        "description": "Нагадування, яке настав час надіслати (для робота розсилки)."
+      },
+      "EntityTagHeaderValue": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "$ref": "#/components/schemas/StringSegment"
+          },
+          "isWeak": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ExpiryState": {
+        "enum": [
+          "Perpetual",
+          "Valid",
+          "ExpiringSoon",
+          "Expired",
+          "Inactive"
+        ],
+        "description": "Обчислюваний стан строку дії документа (не зберігається в БД)."
+      },
+      "FileContentResult": {
+        "type": "object",
+        "properties": {
+          "fileContents": {
+            "type": "string",
+            "format": "byte"
+          },
+          "contentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fileDownloadName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastModified": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "entityTag": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EntityTagHeaderValue"
+              }
+            ]
+          },
+          "enableRangeProcessing": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OwnerDto": {
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "birthDate",
+          "documentsCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Ідентифікатор профілю.",
+            "format": "int32"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "ПІБ."
+          },
+          "email": {
+            "type": "string",
+            "description": "Електронна пошта (унікальна)."
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Дата народження (необов'язково).",
+            "format": "date"
+          },
+          "documentsCount": {
+            "type": "integer",
+            "description": "Кількість документів профілю.",
+            "format": "int32"
+          }
+        },
+        "description": "Профіль власника документів (для читання)."
+      },
+      "PagedResultOfDocumentListItemDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPrevious",
+          "hasNext"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentListItemDto"
+            },
+            "description": "Елементи поточної сторінки."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Номер поточної сторінки.",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Розмір сторінки.",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Загальна кількість елементів, що відповідають фільтру.",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Загальна кількість сторінок.",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Чи існує попередня сторінка."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Чи існує наступна сторінка."
+          }
+        },
+        "description": "Сторінка результатів разом із метаданими пагінації."
+      },
+      "PagedResultOfDocumentTypeDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPrevious",
+          "hasNext"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentTypeDto"
+            },
+            "description": "Елементи поточної сторінки."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Номер поточної сторінки.",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Розмір сторінки.",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Загальна кількість елементів, що відповідають фільтру.",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Загальна кількість сторінок.",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Чи існує попередня сторінка."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Чи існує наступна сторінка."
+          }
+        },
+        "description": "Сторінка результатів разом із метаданими пагінації."
+      },
+      "PagedResultOfDueReminderDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPrevious",
+          "hasNext"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DueReminderDto"
+            },
+            "description": "Елементи поточної сторінки."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Номер поточної сторінки.",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Розмір сторінки.",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Загальна кількість елементів, що відповідають фільтру.",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Загальна кількість сторінок.",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Чи існує попередня сторінка."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Чи існує наступна сторінка."
+          }
+        },
+        "description": "Сторінка результатів разом із метаданими пагінації."
+      },
+      "PagedResultOfOwnerDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPrevious",
+          "hasNext"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerDto"
+            },
+            "description": "Елементи поточної сторінки."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Номер поточної сторінки.",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Розмір сторінки.",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Загальна кількість елементів, що відповідають фільтру.",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Загальна кількість сторінок.",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Чи існує попередня сторінка."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Чи існує наступна сторінка."
+          }
+        },
+        "description": "Сторінка результатів разом із метаданими пагінації."
+      },
+      "PagedResultOfTagDto": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPrevious",
+          "hasNext"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagDto"
+            },
+            "description": "Елементи поточної сторінки."
+          },
+          "page": {
+            "type": "integer",
+            "description": "Номер поточної сторінки.",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Розмір сторінки.",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Загальна кількість елементів, що відповідають фільтру.",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Загальна кількість сторінок.",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Чи існує попередня сторінка."
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Чи існує наступна сторінка."
+          }
+        },
+        "description": "Сторінка результатів разом із метаданими пагінації."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReminderChannel": {
+        "enum": [
+          "Email",
+          "Push",
+          "Sms"
+        ],
+        "description": "Канал доставки нагадування."
+      },
+      "ReminderDto": {
+        "required": [
+          "id",
+          "documentId",
+          "daysBefore",
+          "remindOn",
+          "channel",
+          "isSent",
+          "sentAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Ідентифікатор.",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "description": "Документ.",
+            "format": "int32"
+          },
+          "daysBefore": {
+            "type": "integer",
+            "description": "За скільки днів до завершення дії.",
+            "format": "int32"
+          },
+          "remindOn": {
+            "type": "string",
+            "description": "Дата надсилання.",
+            "format": "date"
+          },
+          "channel": {
+            "description": "Канал (Email, Push, Sms).",
+            "$ref": "#/components/schemas/ReminderChannel"
+          },
+          "isSent": {
+            "type": "boolean",
+            "description": "Чи надіслано."
+          },
+          "sentAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Коли надіслано (UTC).",
+            "format": "date-time"
+          }
+        },
+        "description": "Нагадування про завершення строку дії."
+      },
+      "RenewDocumentDto": {
+        "required": [
+          "newNumber",
+          "issueDate",
+          "expiryDate",
+          "issuedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "newNumber": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "expiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "issuedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Дані для продовження (заміни) документа новим: старий отримує статус Replaced."
+      },
+      "SaveDocumentTypeDto": {
+        "required": [
+          "name",
+          "defaultReminderDays"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "defaultReminderDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Дані для створення або заміни типу документа."
+      },
+      "SortDirection": {
+        "enum": [
+          "Asc",
+          "Desc"
+        ],
+        "description": "Напрям сортування."
+      },
+      "StringSegment": {
+        "type": "object",
+        "properties": {
+          "buffer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasValue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TagDto": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Ідентифікатор.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Назва."
+          }
+        },
+        "description": "Мітка документа."
+      },
+      "UpdateDocumentDto": {
+        "required": [
+          "ownerId",
+          "documentTypeId",
+          "number",
+          "title",
+          "issueDate",
+          "expiryDate",
+          "issuedBy",
+          "filePath",
+          "notes",
+          "status",
+          "tagIds",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentTypeId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "expiryDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "issuedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "filePath": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentStatus"
+          },
+          "tagIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "description": "Дані для повної заміни документа (PUT). Version обов'язковий — оптимістичне блокування."
+      },
+      "UpdateOwnerDto": {
+        "required": [
+          "fullName",
+          "email",
+          "birthDate"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "Дані для повної заміни профілю власника (PUT)."
+      },
+      "ValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "OAuth2": {
+        "type": "oauth2",
+        "description": "Вхід через постачальника OpenID Connect (Authorization Code + PKCE).",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://YOUR_TENANT.eu.auth0.com/authorize",
+            "tokenUrl": "https://YOUR_TENANT.eu.auth0.com/oauth/token",
+            "scopes": {
+              "openid": "Scope 'openid'",
+              "profile": "Scope 'profile'",
+              "email": "Scope 'email'"
+            }
+          }
+        }
+      },
+      "Bearer": {
+        "type": "http",
+        "description": "Готовий маркер доступу (наприклад, скопійований із Postman).",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Account"
+    },
+    {
+      "name": "Document types"
+    },
+    {
+      "name": "Tags"
+    },
+    {
+      "name": "Documents"
+    },
+    {
+      "name": "Owners"
+    },
+    {
+      "name": "Reminders"
+    }
+  ]
+}

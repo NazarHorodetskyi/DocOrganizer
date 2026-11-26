@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "DocOrganizer.DataLayer (меню)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/DocOrganizer.DataLayer/bin/Debug/net10.0/DocOrganizer.DataLayer.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/DocOrganizer.DataLayer",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        }
+    ]
+}

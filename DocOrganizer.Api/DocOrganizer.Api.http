@@ -1,0 +1,46 @@
+# Швидка перевірка API з VS Code (REST Client) або Visual Studio.
+# Токен: увійти через Scalar (https://localhost:7042/scalar → Authorize) або Postman і вставити access_token нижче.
+@host = https://localhost:7042
+@token = <вставте access_token від Auth0 (скопіювати з Postman або Scalar)>
+
+### Хто я (claims із токена)
+GET {{host}}/api/v1/me
+Authorization: Bearer {{token}}
+
+### Без токена → 401 ProblemDetails
+GET {{host}}/api/v1/documents
+
+### Документи: фільтр, сортування, пагінація
+GET {{host}}/api/v1/documents?expiryState=ExpiringSoon&sortBy=expiryDate&page=1&pageSize=10
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Календар завершення строків (90 днів)
+GET {{host}}/api/v1/documents/expiry-calendar
+Authorization: Bearer {{token}}
+
+### Створити документ (ownerId — з GET /owners)
+POST {{host}}/api/v1/documents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ownerId": 1,
+  "documentTypeId": 2,
+  "number": "FX-777001",
+  "title": "Закордонний паспорт",
+  "issueDate": "2026-01-15",
+  "expiryDate": "2036-01-15",
+  "tagIds": [1, 2]
+}
+
+### Некоректний запит → 400 ValidationProblemDetails
+POST {{host}}/api/v1/documents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "ownerId": 0, "documentTypeId": 2, "number": "#", "title": "", "issueDate": "2026-01-15", "expiryDate": "2020-01-01" }
+
+### Експорт у CSV
+GET {{host}}/api/v1/documents/export/csv
+Authorization: Bearer {{token}}

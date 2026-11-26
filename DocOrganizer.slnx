@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="DocOrganizer.Scaffolded/DocOrganizer.Scaffolded.csproj" />
+  <Project Path="DocOrganizer.DataLayer/DocOrganizer.DataLayer.csproj" />
+  <Project Path="DocOrganizer.Api/DocOrganizer.Api.csproj" />
+</Solution>

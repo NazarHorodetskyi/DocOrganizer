@@ -1,0 +1,3380 @@
+{
+  "info": {
+    "name": "DocOrganizer API",
+    "description": "Колекція для демонстрації всіх кінцевих точок API.\n\n**Підготовка:** налаштувати Auth0 (README, розділ «Auth0 setup»), за потреби змінити auth0Domain і clientId у змінних колекції (Variables); запустити API (dotnet run --launch-profile https).\n\n**Авторизація:** OAuth 2.0 Authorization Code (With PKCE). На вкладці Authorization колекції (або папки) натиснути **Get New Access Token** і увійти:\n- колекція (папки 0–4) — `olena@docorganizer.test` (member);\n- папка 5 — `petro@docorganizer.test` (member, чужі документи → 403);\n- папка 6 — `viewer@docorganizer.test` (лише читання → 403 на запис);\n- папка 7 — `admin@docorganizer.test` (довідники, черга нагадувань, 500).\n\nЗапити виконувати по порядку (Run collection): наступні беруть ідентифікатори з попередніх відповідей.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      {
+        "key": "grant_type",
+        "value": "authorization_code_with_pkce",
+        "type": "string"
+      },
+      {
+        "key": "authUrl",
+        "value": "{{authUrl}}",
+        "type": "string"
+      },
+      {
+        "key": "accessTokenUrl",
+        "value": "{{tokenUrl}}",
+        "type": "string"
+      },
+      {
+        "key": "clientId",
+        "value": "{{clientId}}",
+        "type": "string"
+      },
+      {
+        "key": "scope",
+        "value": "openid profile email",
+        "type": "string"
+      },
+      {
+        "key": "redirect_uri",
+        "value": "https://oauth.pstmn.io/v1/callback",
+        "type": "string"
+      },
+      {
+        "key": "useBrowser",
+        "value": false,
+        "type": "boolean"
+      },
+      {
+        "key": "challengeAlgorithm",
+        "value": "S256",
+        "type": "string"
+      },
+      {
+        "key": "client_authentication",
+        "value": "body",
+        "type": "string"
+      },
+      {
+        "key": "addTokenTo",
+        "value": "header",
+        "type": "string"
+      },
+      {
+        "key": "tokenName",
+        "value": "olena (member)",
+        "type": "string"
+      },
+      {
+        "key": "authRequestParams",
+        "value": [
+          {
+            "key": "audience",
+            "value": "{{audience}}",
+            "enabled": true,
+            "send_as": "request_url"
+          },
+          {
+            "key": "prompt",
+            "value": "login",
+            "enabled": true,
+            "send_as": "request_url"
+          }
+        ],
+        "type": "any"
+      },
+      {
+        "key": "tokenRequestParams",
+        "value": [
+          {
+            "key": "audience",
+            "value": "{{audience}}",
+            "enabled": true,
+            "send_as": "request_body"
+          }
+        ],
+        "type": "any"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:7042/api/v1"
+    },
+    {
+      "key": "auth0Domain",
+      "value": "YOUR_TENANT.eu.auth0.com"
+    },
+    {
+      "key": "audience",
+      "value": "https://doc-organizer-api"
+    },
+    {
+      "key": "clientId",
+      "value": "YOUR_SPA_CLIENT_ID"
+    },
+    {
+      "key": "authUrl",
+      "value": "https://{{auth0Domain}}/authorize"
+    },
+    {
+      "key": "tokenUrl",
+      "value": "https://{{auth0Domain}}/oauth/token"
+    },
+    {
+      "key": "ownerId",
+      "value": ""
+    },
+    {
+      "key": "ownerWithDocsId",
+      "value": ""
+    },
+    {
+      "key": "newOwnerId",
+      "value": ""
+    },
+    {
+      "key": "ownerEmail",
+      "value": ""
+    },
+    {
+      "key": "documentId",
+      "value": ""
+    },
+    {
+      "key": "documentVersion",
+      "value": ""
+    },
+    {
+      "key": "staleVersion",
+      "value": ""
+    },
+    {
+      "key": "docNumber",
+      "value": ""
+    },
+    {
+      "key": "perpetualDocumentId",
+      "value": ""
+    },
+    {
+      "key": "renewedDocumentId",
+      "value": ""
+    },
+    {
+      "key": "reminderId",
+      "value": ""
+    },
+    {
+      "key": "typeId",
+      "value": ""
+    },
+    {
+      "key": "tagId",
+      "value": ""
+    },
+    {
+      "key": "dueReminderId",
+      "value": ""
+    },
+    {
+      "key": "today",
+      "value": ""
+    },
+    {
+      "key": "issueDate",
+      "value": ""
+    },
+    {
+      "key": "expiryDate",
+      "value": ""
+    },
+    {
+      "key": "pastDate",
+      "value": ""
+    },
+    {
+      "key": "futureDate",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const d = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };",
+          "pm.collectionVariables.set(\"today\", d(0));",
+          "pm.collectionVariables.set(\"issueDate\", d(-30));",
+          "pm.collectionVariables.set(\"expiryDate\", d(700));",
+          "pm.collectionVariables.set(\"pastDate\", d(-400));",
+          "pm.collectionVariables.set(\"futureDate\", d(30));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Поточний користувач",
+      "description": "Перевірка токена: які claims і ролі передав Auth0.",
+      "item": [
+        {
+          "name": "GET /me — хто я",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Є роль\", () => pm.expect(pm.response.json().roles, \"Немає ролей — перевір Action у Auth0\").to.not.be.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents без токена → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 Unauthorized\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Owners — профілі власників (olena)",
+      "description": "CRUD профілів власників; 409 за унікальністю email і для власника з документами.",
+      "item": [
+        {
+          "name": "GET /owners — сторінка, пошук, сортування",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Метадані сторінки\", () => {",
+                  "    const b = pm.response.json();",
+                  "    [\"items\",\"page\",\"pageSize\",\"totalCount\",\"totalPages\",\"hasPrevious\",\"hasNext\"].forEach(k => pm.expect(b).to.have.property(k));",
+                  "});",
+                  "const items = pm.response.json().items;",
+                  "pm.test(\"Лише власні профілі (Коваленки)\", () => items.forEach(o => pm.expect(o.fullName).to.include(\"Коваленко\")));",
+                  "const withDocs = items.find(o => o.documentsCount > 0);",
+                  "pm.collectionVariables.set(\"ownerId\", items[0].id);",
+                  "pm.collectionVariables.set(\"ownerWithDocsId\", withDocs.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners?page=1&pageSize=10&sortBy=fullName&sortDir=Asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "fullName"
+                },
+                {
+                  "key": "sortDir",
+                  "value": "Asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /owners → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"ownerEmail\", \"pm.\" + Date.now() + \"@example.com\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Є заголовок Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.collectionVariables.set(\"newOwnerId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Марія Коваленко\",\n  \"email\": \"{{ownerEmail}}\",\n  \"birthDate\": \"2016-03-08\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /owners — той самий email → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Інша Особа\",\n  \"email\": \"{{ownerEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /owners — некоректні дані → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Помилки за полями\", () => {",
+                  "    const e = pm.response.json().errors;",
+                  "    pm.expect(e).to.have.property(\"FullName\");",
+                  "    pm.expect(e).to.have.property(\"Email\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"A\",\n  \"email\": \"not-an-email\",\n  \"birthDate\": \"{{futureDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /owners/{id} → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners/{{newOwnerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners",
+                "{{newOwnerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /owners/{id} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners/{{newOwnerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners",
+                "{{newOwnerId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Марія Іванівна Коваленко\",\n  \"email\": \"{{ownerEmail}}\",\n  \"birthDate\": \"2016-03-08\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /owners/{id} повторно (ідемпотентність) → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners/{{newOwnerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners",
+                "{{newOwnerId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Марія Іванівна Коваленко\",\n  \"email\": \"{{ownerEmail}}\",\n  \"birthDate\": \"2016-03-08\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /owners/{id} з документами → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners/{{ownerWithDocsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners",
+                "{{ownerWithDocsId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /owners/{id} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners/{{newOwnerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners",
+                "{{newOwnerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /owners/{id} повторно → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners/{{newOwnerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners",
+                "{{newOwnerId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Documents — документи (olena)",
+      "description": "Список із фільтрами, календар, експорт, CRUD, оптимістичне блокування, продовження.",
+      "item": [
+        {
+          "name": "GET /documents — сторінка",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Метадані сторінки\", () => {",
+                  "    const b = pm.response.json();",
+                  "    [\"items\",\"page\",\"pageSize\",\"totalCount\",\"totalPages\",\"hasPrevious\",\"hasNext\"].forEach(k => pm.expect(b).to.have.property(k));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents?page=1&pageSize=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents — спливають скоро, сортування за датою",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Усі ExpiringSoon\", () => pm.response.json().items.forEach(d => pm.expect(d.expiryState).to.eql(\"ExpiringSoon\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents?expiryState=ExpiringSoon&sortBy=expiryDate&sortDir=Asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "expiryState",
+                  "value": "ExpiringSoon"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "expiryDate"
+                },
+                {
+                  "key": "sortDir",
+                  "value": "Asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents — пошук + мітка + статус",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents?search=паспорт&tagId=2&status=Active&sortBy=title",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "паспорт"
+                },
+                {
+                  "key": "tagId",
+                  "value": "2"
+                },
+                {
+                  "key": "status",
+                  "value": "Active"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "title"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents — некоректний pageSize → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents?pageSize=500",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "500"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents/expiry-calendar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Метадані сторінки\", () => {",
+                  "    const b = pm.response.json();",
+                  "    [\"items\",\"page\",\"pageSize\",\"totalCount\",\"totalPages\",\"hasPrevious\",\"hasNext\"].forEach(k => pm.expect(b).to.have.property(k));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/expiry-calendar?pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "expiry-calendar"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents/export/csv → файл",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"CSV\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/csv"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/export/csv?expiryState=Expired",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "export",
+                "csv"
+              ],
+              "query": [
+                {
+                  "key": "expiryState",
+                  "value": "Expired"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents/export/xml → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/export/xml",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "export",
+                "xml"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /documents → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"docNumber\", \"PM-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Є заголовок Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.collectionVariables.set(\"documentId\", pm.response.json().id);",
+                  "pm.test(\"DTO не містить AccountId і має обчислені поля\", () => {",
+                  "    const d = pm.response.json();",
+                  "    pm.expect(d).to.not.have.property(\"accountId\");",
+                  "    pm.expect(d).to.have.property(\"expiryState\");",
+                  "    pm.expect(d).to.have.property(\"version\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 2,\n  \"number\": \"{{docNumber}}\",\n  \"title\": \"Закордонний паспорт (Postman)\",\n  \"issueDate\": \"{{issueDate}}\",\n  \"expiryDate\": \"{{expiryDate}}\",\n  \"issuedBy\": \"ДМС 4610\",\n  \"tagIds\": [\n    1,\n    2\n  ],\n  \"notes\": \"Створено з колекції Postman\",\n  \"createDefaultReminder\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /documents — той самий номер → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 2,\n  \"number\": \"{{docNumber}}\",\n  \"title\": \"Дублікат\",\n  \"issueDate\": \"{{issueDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /documents — некоректні дані → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Помилки валідації\", () => {",
+                  "    const e = pm.response.json().errors;",
+                  "    pm.expect(e).to.have.property(\"Title\");",
+                  "    pm.expect(e).to.have.property(\"OwnerId\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": 0,\n  \"documentTypeId\": 2,\n  \"number\": \"#!\",\n  \"title\": \"\",\n  \"issueDate\": \"{{issueDate}}\",\n  \"expiryDate\": \"{{pastDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /documents — дата завершення раніше видачі → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Помилка ExpiryDate\", () => pm.expect(pm.response.json().errors).to.have.property(\"ExpiryDate\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 2,\n  \"number\": \"BAD-DATES\",\n  \"title\": \"Документ\",\n  \"issueDate\": \"{{issueDate}}\",\n  \"expiryDate\": \"{{pastDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /documents — невідомий тип → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422 Unprocessable Entity\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 9999,\n  \"number\": \"UNK-TYPE\",\n  \"title\": \"Документ\",\n  \"issueDate\": \"{{issueDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /documents — безстроковий → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"perpNumber\", \"DOV-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"perpetualDocumentId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 8,\n  \"number\": \"{{perpNumber}}\",\n  \"title\": \"Довіреність (безстрокова)\",\n  \"issueDate\": \"{{issueDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /documents/{id} → 200 (version)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"documentVersion\", pm.response.json().version);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /documents/{id} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));",
+                  "pm.collectionVariables.set(\"staleVersion\", pm.collectionVariables.get(\"documentVersion\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 2,\n  \"number\": \"{{docNumber}}\",\n  \"title\": \"Закордонний паспорт (оновлено)\",\n  \"issueDate\": \"{{issueDate}}\",\n  \"expiryDate\": \"{{expiryDate}}\",\n  \"issuedBy\": \"ДМС 4610\",\n  \"status\": \"Active\",\n  \"tagIds\": [\n    1,\n    2,\n    6\n  ],\n  \"version\": \"{{documentVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /documents/{id} зі старою version → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}"
+              ]
+            },
+            "description": "Імітація паралельного редагування: version уже змінився після попереднього PUT.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 2,\n  \"number\": \"{{docNumber}}\",\n  \"title\": \"Чужа зміна\",\n  \"issueDate\": \"{{issueDate}}\",\n  \"expiryDate\": \"{{expiryDate}}\",\n  \"status\": \"Active\",\n  \"version\": \"{{staleVersion}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /documents/{id}/renewal → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Є заголовок Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.collectionVariables.set(\"renewedDocumentId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}/renewal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}",
+                "renewal"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newNumber\": \"{{docNumber}}-R\",\n  \"issueDate\": \"{{today}}\",\n  \"expiryDate\": \"{{expiryDate}}\",\n  \"issuedBy\": \"ДМС 4611\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /documents/{id}/renewal повторно → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}/renewal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}",
+                "renewal"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newNumber\": \"{{docNumber}}-R2\",\n  \"issueDate\": \"{{today}}\",\n  \"expiryDate\": \"{{expiryDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /documents/{id} неіснуючий → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/99999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "99999999"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Reminders — нагадування (olena)",
+      "description": "Вкладений ресурс /documents/{id}/reminders.",
+      "item": [
+        {
+          "name": "GET /documents/{id}/reminders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}/reminders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}",
+                "reminders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /documents/{id}/reminders → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Є заголовок Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.collectionVariables.set(\"reminderId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}/reminders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}",
+                "reminders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daysBefore\": 7,\n  \"channel\": \"Sms\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST — той самий відступ → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}/reminders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}",
+                "reminders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daysBefore\": 7,\n  \"channel\": \"Email\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST — безстроковий документ → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"422 Unprocessable Entity\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{perpetualDocumentId}}/reminders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{perpetualDocumentId}}",
+                "reminders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daysBefore\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST — daysBefore поза діапазоном → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}/reminders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}",
+                "reminders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"daysBefore\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /documents/{id}/reminders/{rid} → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}/reminders/{{reminderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}",
+                "reminders",
+                "{{reminderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /documents/{id}/reminders/{rid} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}/reminders/{{reminderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}",
+                "reminders",
+                "{{reminderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /documents/{id} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{perpetualDocumentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{perpetualDocumentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /documents/{id} повторно → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{perpetualDocumentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{perpetualDocumentId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Довідники — читання (olena)",
+      "description": "Типи документів і мітки: читати може будь-яка роль, змінювати — лише admin.",
+      "item": [
+        {
+          "name": "GET /document-types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Метадані сторінки\", () => {",
+                  "    const b = pm.response.json();",
+                  "    [\"items\",\"page\",\"pageSize\",\"totalCount\",\"totalPages\",\"hasPrevious\",\"hasNext\"].forEach(k => pm.expect(b).to.have.property(k));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types?sortBy=defaultReminderDays&sortDir=Desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types"
+              ],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "defaultReminderDays"
+                },
+                {
+                  "key": "sortDir",
+                  "value": "Desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /document-types/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types",
+                "2"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /tags",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Метадані сторінки\", () => {",
+                  "    const b = pm.response.json();",
+                  "    [\"items\",\"page\",\"pageSize\",\"totalCount\",\"totalPages\",\"hasPrevious\",\"hasNext\"].forEach(k => pm.expect(b).to.have.property(k));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /tags/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /document-types як member → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Спроба member\",\n  \"defaultReminderDays\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /reminders/due як member → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/due",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "due"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Чужі ресурси (petro)",
+      "description": "Увійти як petro@docorganizer.test (Get New Access Token на вкладці Authorization цієї папки). Resource-based авторизація: документ olena → 403.",
+      "item": [
+        {
+          "name": "GET /documents — лише свої",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Немає документів Коваленків\", () => pm.response.json().items.forEach(d => pm.expect(d.ownerFullName).to.not.include(\"Коваленко\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents/{id olena} → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /documents/{id olena} → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{ownerId}},\n  \"documentTypeId\": 2,\n  \"number\": \"HACK\",\n  \"title\": \"Злам\",\n  \"issueDate\": \"{{issueDate}}\",\n  \"status\": \"Active\",\n  \"version\": \"AAAAAAAAB9E=\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /documents/{id olena} → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /owners/{id olena} → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners/{{ownerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners",
+                "{{ownerId}}"
+              ]
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "oauth2",
+        "oauth2": [
+          {
+            "key": "grant_type",
+            "value": "authorization_code_with_pkce",
+            "type": "string"
+          },
+          {
+            "key": "authUrl",
+            "value": "{{authUrl}}",
+            "type": "string"
+          },
+          {
+            "key": "accessTokenUrl",
+            "value": "{{tokenUrl}}",
+            "type": "string"
+          },
+          {
+            "key": "clientId",
+            "value": "{{clientId}}",
+            "type": "string"
+          },
+          {
+            "key": "scope",
+            "value": "openid profile email",
+            "type": "string"
+          },
+          {
+            "key": "redirect_uri",
+            "value": "https://oauth.pstmn.io/v1/callback",
+            "type": "string"
+          },
+          {
+            "key": "useBrowser",
+            "value": false,
+            "type": "boolean"
+          },
+          {
+            "key": "challengeAlgorithm",
+            "value": "S256",
+            "type": "string"
+          },
+          {
+            "key": "client_authentication",
+            "value": "body",
+            "type": "string"
+          },
+          {
+            "key": "addTokenTo",
+            "value": "header",
+            "type": "string"
+          },
+          {
+            "key": "tokenName",
+            "value": "petro (member)",
+            "type": "string"
+          },
+          {
+            "key": "authRequestParams",
+            "value": [
+              {
+                "key": "audience",
+                "value": "{{audience}}",
+                "enabled": true,
+                "send_as": "request_url"
+              },
+              {
+                "key": "prompt",
+                "value": "login",
+                "enabled": true,
+                "send_as": "request_url"
+              }
+            ],
+            "type": "any"
+          },
+          {
+            "key": "tokenRequestParams",
+            "value": [
+              {
+                "key": "audience",
+                "value": "{{audience}}",
+                "enabled": true,
+                "send_as": "request_body"
+              }
+            ],
+            "type": "any"
+          }
+        ]
+      }
+    },
+    {
+      "name": "6. Лише читання (viewer)",
+      "description": "Увійти як viewer@docorganizer.test. Політика CanWrite не дозволяє запис → 403.",
+      "item": [
+        {
+          "name": "GET /documents → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /owners → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/owners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owners"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Спроба viewer\",\n  \"email\": \"viewer.try@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "auth": {
+        "type": "oauth2",
+        "oauth2": [
+          {
+            "key": "grant_type",
+            "value": "authorization_code_with_pkce",
+            "type": "string"
+          },
+          {
+            "key": "authUrl",
+            "value": "{{authUrl}}",
+            "type": "string"
+          },
+          {
+            "key": "accessTokenUrl",
+            "value": "{{tokenUrl}}",
+            "type": "string"
+          },
+          {
+            "key": "clientId",
+            "value": "{{clientId}}",
+            "type": "string"
+          },
+          {
+            "key": "scope",
+            "value": "openid profile email",
+            "type": "string"
+          },
+          {
+            "key": "redirect_uri",
+            "value": "https://oauth.pstmn.io/v1/callback",
+            "type": "string"
+          },
+          {
+            "key": "useBrowser",
+            "value": false,
+            "type": "boolean"
+          },
+          {
+            "key": "challengeAlgorithm",
+            "value": "S256",
+            "type": "string"
+          },
+          {
+            "key": "client_authentication",
+            "value": "body",
+            "type": "string"
+          },
+          {
+            "key": "addTokenTo",
+            "value": "header",
+            "type": "string"
+          },
+          {
+            "key": "tokenName",
+            "value": "viewer (viewer)",
+            "type": "string"
+          },
+          {
+            "key": "authRequestParams",
+            "value": [
+              {
+                "key": "audience",
+                "value": "{{audience}}",
+                "enabled": true,
+                "send_as": "request_url"
+              },
+              {
+                "key": "prompt",
+                "value": "login",
+                "enabled": true,
+                "send_as": "request_url"
+              }
+            ],
+            "type": "any"
+          },
+          {
+            "key": "tokenRequestParams",
+            "value": [
+              {
+                "key": "audience",
+                "value": "{{audience}}",
+                "enabled": true,
+                "send_as": "request_body"
+              }
+            ],
+            "type": "any"
+          }
+        ]
+      }
+    },
+    {
+      "name": "7. Адміністратор (admin)",
+      "description": "Увійти як admin@docorganizer.test. Керування довідниками, черга нагадувань, демонстрація 500.",
+      "item": [
+        {
+          "name": "GET /documents — усі користувачі",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Метадані сторінки\", () => {",
+                  "    const b = pm.response.json();",
+                  "    [\"items\",\"page\",\"pageSize\",\"totalCount\",\"totalPages\",\"hasPrevious\",\"hasNext\"].forEach(k => pm.expect(b).to.have.property(k));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents?pageSize=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /documents/{id olena} → 200 (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{renewedDocumentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{renewedDocumentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /document-types → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"typeName\", \"Студентський квиток \" + Date.now() % 100000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Є заголовок Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.collectionVariables.set(\"typeId\", pm.response.json().id);",
+                  "pm.collectionVariables.set(\"typeName\", pm.response.json().name);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{typeName}}\",\n  \"defaultReminderDays\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /document-types — та сама назва → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{typeName}}\",\n  \"defaultReminderDays\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /document-types — некоректні дані → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"defaultReminderDays\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /document-types/{id} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types/{{typeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types",
+                "{{typeId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{typeName}} (оновлено)\",\n  \"defaultReminderDays\": 25\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /document-types/1 (використовується) → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /document-types/{id} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/document-types/{{typeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types",
+                "{{typeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /tags → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"tagName\", \"Мітка \" + Date.now() % 100000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"tagId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{tagName}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /tags/{id} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tags/{{tagId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tags",
+                "{{tagId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reminders/due (черга на 2 роки вперед) → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Метадані сторінки\", () => {",
+                  "    const b = pm.response.json();",
+                  "    [\"items\",\"page\",\"pageSize\",\"totalCount\",\"totalPages\",\"hasPrevious\",\"hasNext\"].forEach(k => pm.expect(b).to.have.property(k));",
+                  "});",
+                  "const items = pm.response.json().items;",
+                  "pm.test(\"Черга не порожня\", () => pm.expect(items.length).to.be.above(0));",
+                  "pm.collectionVariables.set(\"dueReminderId\", items.length ? items[0].reminderId : \"\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/due?onDate={{expiryDate}}&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "due"
+              ],
+              "query": [
+                {
+                  "key": "onDate",
+                  "value": "{{expiryDate}}"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "onDate у майбутньому — щоб у черзі завжди були ненадіслані нагадування (минулі в тестових даних уже надіслані)."
+          }
+        },
+        {
+          "name": "POST /reminders/{id}/sent → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/{{dueReminderId}}/sent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "{{dueReminderId}}",
+                "sent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /reminders/{id}/sent повторно → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/{{dueReminderId}}/sent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "{{dueReminderId}}",
+                "sent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /diagnostics/error → 500 (ProblemDetails)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"500 Internal Server Error\", () => pm.response.to.have.status(500));",
+                  "pm.test(\"Тіло — ProblemDetails\", () => {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/problem+json\");",
+                  "    pm.expect(pm.response.json()).to.have.property(\"title\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/diagnostics/error",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "diagnostics",
+                "error"
+              ]
+            },
+            "description": "У Development detail містить текст винятку; у Production (launch profile \"production\") — null."
+          }
+        }
+      ],
+      "auth": {
+        "type": "oauth2",
+        "oauth2": [
+          {
+            "key": "grant_type",
+            "value": "authorization_code_with_pkce",
+            "type": "string"
+          },
+          {
+            "key": "authUrl",
+            "value": "{{authUrl}}",
+            "type": "string"
+          },
+          {
+            "key": "accessTokenUrl",
+            "value": "{{tokenUrl}}",
+            "type": "string"
+          },
+          {
+            "key": "clientId",
+            "value": "{{clientId}}",
+            "type": "string"
+          },
+          {
+            "key": "scope",
+            "value": "openid profile email",
+            "type": "string"
+          },
+          {
+            "key": "redirect_uri",
+            "value": "https://oauth.pstmn.io/v1/callback",
+            "type": "string"
+          },
+          {
+            "key": "useBrowser",
+            "value": false,
+            "type": "boolean"
+          },
+          {
+            "key": "challengeAlgorithm",
+            "value": "S256",
+            "type": "string"
+          },
+          {
+            "key": "client_authentication",
+            "value": "body",
+            "type": "string"
+          },
+          {
+            "key": "addTokenTo",
+            "value": "header",
+            "type": "string"
+          },
+          {
+            "key": "tokenName",
+            "value": "admin (admin)",
+            "type": "string"
+          },
+          {
+            "key": "authRequestParams",
+            "value": [
+              {
+                "key": "audience",
+                "value": "{{audience}}",
+                "enabled": true,
+                "send_as": "request_url"
+              },
+              {
+                "key": "prompt",
+                "value": "login",
+                "enabled": true,
+                "send_as": "request_url"
+              }
+            ],
+            "type": "any"
+          },
+          {
+            "key": "tokenRequestParams",
+            "value": [
+              {
+                "key": "audience",
+                "value": "{{audience}}",
+                "enabled": true,
+                "send_as": "request_body"
+              }
+            ],
+            "type": "any"
+          }
+        ]
+      }
+    }
+  ]
+}

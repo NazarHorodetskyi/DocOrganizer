@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>DocOrganizer.Api</RootNamespace>
+    <UserSecretsId>doc-organizer-api</UserSecretsId>
+    <!-- XML-коментарі (<summary>, <param>, <response>) потрапляють у документ OpenAPI -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- 1591: публічні члени без XML-коментарів;
+         AV0029/AV0030: пропозиція підключити Asp.Versioning.OpenApi для документа на кожну версію —
+         у нас одна версія (v1), документ формує вбудований AddOpenApi("v1") за GroupName. -->
+    <NoWarn>$(NoWarn);1591;AV0029;AV0030</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Версії пакетів Microsoft — лише гілка 10.0.x (сумісна з net10.0) -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.15" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.21.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
+    <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
+  </ItemGroup>
+
+</Project>
